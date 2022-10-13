@@ -33,22 +33,22 @@ use std::thread;
 /// Error type.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    /// Duplicated result
+    /// Duplicated result.
     #[error("Too many results")]
     TooManyResults,
-    /// If assigned more than once
+    /// If assigned more than once.
     #[error("Variable has been assigned more than once")]
     AssignedMoreThanOnce,
-    /// If not all variables has been assigned
+    /// If not all variables has been assigned.
     #[error("Not all variables has been assigned")]
     NotAllAreAssigned,
-    /// Parse error for integers
+    /// Parse error for integers.
     #[error("Parse error: {0}")]
     ParseError(#[from] ParseIntError),
     /// I/O error.
     #[error("IO rttot: {0}")]
     IOError(#[from] io::Error),
-    /// No input available
+    /// No input available.
     #[error("No input available from solver")]
     NoInputAvailable,
 }
