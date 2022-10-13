@@ -50,13 +50,14 @@ pub enum Error {
 
 /// Sat solver output.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SatOutput {
-    /// An assignment of variables if instance is satisfiable.
-    /// The first variable start from index 1.
-    pub assignment: Option<Vec<bool>>,
-    /// It have some value if result is determined: true if instance is satisfiable or
-    /// false if instance is unsatisfiable. It have no value if result is unknown or not given.
-    pub satisfiable: Option<bool>,
+pub enum SatOutput {
+    /// Unknown satisfiability.
+    Unknown,
+    /// Instance is unsatisfiable.
+    Unsatisfiable,
+    /// Instance is satisfiable. Possible assignment given as vector boolean values.
+    /// Index in this vector is literal value. Just `v[2]` gets value of second variable.
+    Satisfiable(Option<Vec<bool>>),
 }
 
 /// Try to parse SAT solver output. It ignores any lines that are not result or
@@ -75,10 +76,7 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
                     }
                     let trimmed = line[1..].trim_start();
                     if trimmed.starts_with("UNSAT") {
-                        return Ok(SatOutput {
-                            assignment: None,
-                            satisfiable: Some(false),
-                        });
+                        return Ok(SatOutput::Unsatisfiable);
                     } else if trimmed.starts_with("SAT") {
                         satisfiable = true;
                     }
@@ -116,22 +114,16 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
     if satisfiable {
         if have_assignments.iter().skip(1).all(|x| *x) {
             // all variables assigned - ok
-            Ok(SatOutput {
-                assignment: if assignments.is_empty() {
-                    None
-                } else {
-                    Some(assignments)
-                },
-                satisfiable: Some(true),
-            })
+            if !assignments.is_empty() {
+                Ok(SatOutput::Satisfiable(Some(assignments)))
+            } else {
+                Ok(SatOutput::Satisfiable(None))
+            }
         } else {
             Err(Error::NotAllAreAssigned)
         }
     } else {
-        Ok(SatOutput {
-            assignment: None,
-            satisfiable: None,
-        })
+        Ok(SatOutput::Unknown)
     }
 }
 
@@ -163,34 +155,26 @@ where
         Err(err) => panic::resume_unwind(err),
     }?;
 
-    let exp_satisiable = if let Some(exit_code) = output.status.code() {
+    let exp_satisfiable = if let Some(exit_code) = output.status.code() {
         match exit_code {
-            10 => Some(true),
-            20 => Some(false),
-            _ => None,
+            10 => SatOutput::Satisfiable(None),
+            20 => SatOutput::Unsatisfiable,
+            _ => SatOutput::Unknown,
         }
     } else {
-        None
+        SatOutput::Unknown
     };
 
     if !output.stdout.is_empty() {
         let sat_out = parse_sat_output(BufReader::new(output.stdout.as_slice()))?;
-        if sat_out.satisfiable.is_none() {
+        if let SatOutput::Unknown = sat_out {
             // if satisfiability is uknown from stdout output
-            println!("sss");
-            Ok(SatOutput {
-                assignment: None,
-                satisfiable: exp_satisiable,
-            })
+            Ok(exp_satisfiable)
         } else {
-            println!("sssxxx");
             Ok(sat_out)
         }
     } else {
-        Ok(SatOutput {
-            assignment: None,
-            satisfiable: exp_satisiable,
-        })
+        Ok(exp_satisfiable)
     }
 }
 
@@ -207,10 +191,9 @@ v -2 1 3 -5 4 0
 c This is end
 "#;
         assert_eq!(
-            Ok(SatOutput {
-                assignment: Some(vec![false, true, false, true, true, false]),
-                satisfiable: Some(true),
-            }),
+            Ok(SatOutput::Satisfiable(Some(vec![
+                false, true, false, true, true, false
+            ]))),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
 
@@ -242,10 +225,7 @@ s SATISFIABLE
 c This is end
 "#;
         assert_eq!(
-            Ok(SatOutput {
-                assignment: None,
-                satisfiable: Some(true),
-            }),
+            Ok(SatOutput::Satisfiable(None)),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
 
@@ -256,10 +236,9 @@ v -2 1 3 -5 4 0
 c This is end
 "#;
         assert_eq!(
-            Ok(SatOutput {
-                assignment: Some(vec![false, true, false, true, true, false]),
-                satisfiable: Some(true),
-            }),
+            Ok(SatOutput::Satisfiable(Some(vec![
+                false, true, false, true, true, false
+            ]))),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
 
@@ -271,10 +250,9 @@ v -5 4 0
 c This is end
 "#;
         assert_eq!(
-            Ok(SatOutput {
-                assignment: Some(vec![false, true, false, true, true, false]),
-                satisfiable: Some(true),
-            }),
+            Ok(SatOutput::Satisfiable(Some(vec![
+                false, true, false, true, true, false
+            ]))),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
 
@@ -287,10 +265,9 @@ v-5   4 1 0
 c This is end
 "#;
         assert_eq!(
-            Ok(SatOutput {
-                assignment: Some(vec![false, true, false, true, true, false]),
-                satisfiable: Some(true),
-            }),
+            Ok(SatOutput::Satisfiable(Some(vec![
+                false, true, false, true, true, false
+            ]))),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
 
@@ -304,10 +281,9 @@ v -5 4 0
 c This is end
 "#;
         assert_eq!(
-            Ok(SatOutput {
-                assignment: Some(vec![false, true, false, true, true, false]),
-                satisfiable: Some(true),
-            }),
+            Ok(SatOutput::Satisfiable(Some(vec![
+                false, true, false, true, true, false
+            ]))),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
 
@@ -317,10 +293,7 @@ s UNSATISFIABLE
 c This is end
 "#;
         assert_eq!(
-            Ok(SatOutput {
-                assignment: None,
-                satisfiable: Some(false),
-            }),
+            Ok(SatOutput::Unsatisfiable),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
 
@@ -341,10 +314,7 @@ sUNSATISFIABLE
 c This is end
 "#;
         assert_eq!(
-            Ok(SatOutput {
-                assignment: None,
-                satisfiable: Some(false),
-            }),
+            Ok(SatOutput::Unsatisfiable),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
 
@@ -353,10 +323,7 @@ c bumbum
 c This is end
 "#;
         assert_eq!(
-            Ok(SatOutput {
-                assignment: None,
-                satisfiable: None,
-            }),
+            Ok(SatOutput::Unknown),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
 
@@ -366,10 +333,7 @@ v -1 -3 4 2
 c This is end
 "#;
         assert_eq!(
-            Ok(SatOutput {
-                assignment: None,
-                satisfiable: None,
-            }),
+            Ok(SatOutput::Unknown),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
     }
