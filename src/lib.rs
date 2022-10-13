@@ -17,6 +17,11 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+#![cfg_attr(docsrs, feature(doc_cfg))]
+//! The library to call SAT solver.
+//!
+//! This library provides routines to parse SAT solver output and to call SAT solver.
+
 use std::ffi::OsStr;
 use std::io::{self, BufRead, BufReader, Read};
 use std::num::ParseIntError;
