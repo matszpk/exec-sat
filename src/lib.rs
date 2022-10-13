@@ -24,6 +24,9 @@ use std::str::FromStr;
 /// Error type.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    /// Duplicated result
+    #[error("Too many results")]
+    TooManyResults,
     /// Parse error for integers
     #[error("Parse error: {0}")]
     ParseError(#[from] ParseIntError),
@@ -48,10 +51,14 @@ pub struct SatOutput {
 pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
     let mut vars = vec![];
     let mut satisfiable = false;
+    let mut have_result = false;
     for line in r.lines() {
         match line {
             Ok(line) => match line.chars().next() {
                 Some('s') => {
+                    if have_result {
+                        return Err(Error::TooManyResults);
+                    }
                     let trimmed = line[1..].trim_start();
                     if trimmed.starts_with("UNSAT") {
                         return Ok(SatOutput {
@@ -61,6 +68,7 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
                     } else if trimmed.starts_with("SAT") {
                         satisfiable = true;
                     }
+                    have_result = true;
                 }
                 Some('v') => {
                     let line = &line[1..];
@@ -86,7 +94,7 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
     }
     if satisfiable {
         Ok(SatOutput {
-            assignment: Some(vars),
+            assignment: if vars.is_empty() { None } else { Some(vars) },
             satisfiable: Some(true),
         })
     } else {
@@ -119,6 +127,18 @@ c This is end
         );
         let example = r#"c blabla
 c bumbum
+s SATISFIABLE
+c This is end
+"#;
+        assert_eq!(
+            Ok(SatOutput {
+                assignment: None,
+                satisfiable: Some(true),
+            }),
+            parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
+        );
+        let example = r#"c blabla
+c bumbum
 sSATISFIABLE
 v -2 1 3 -5 4 0
 c This is end
@@ -130,7 +150,7 @@ c This is end
             }),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
-let example = r#"c blabla
+        let example = r#"c blabla
 c bumbam
 s SATISFIABLE
 v -2 1 3
@@ -144,7 +164,7 @@ c This is end
             }),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
-let example = r#"c blabla
+        let example = r#"c blabla
 c bumbam
 s SATISFIABLE
 v-2  
@@ -159,7 +179,7 @@ c This is end
             }),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
-let example = r#"c blablaxx
+        let example = r#"c blablaxx
 c bumbumxxx
 s SATISFIABLE
 o my god
@@ -185,6 +205,16 @@ c This is end
                 assignment: None,
                 satisfiable: Some(false),
             }),
+            parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
+        );
+        let example = r#"c blabla
+c bumbum
+s SATISFIABLE
+s UNSATISFIABLE
+c This is end
+"#;
+        assert_eq!(
+            Err("Too many results".to_string()),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
         let example = r#"c blabla
