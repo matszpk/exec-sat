@@ -58,13 +58,13 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
                             assignment: None,
                             satisfiable: Some(false),
                         });
-                    } else if trimmed.starts_with("s SAT") {
+                    } else if trimmed.starts_with("SAT") {
+                        satisfiable = true;
+                    } else {
                         return Ok(SatOutput {
                             assignment: None,
                             satisfiable: None,
                         });
-                    } else {
-                        satisfiable = true;
                     }
                 }
                 Some('v') => {
