@@ -60,11 +60,6 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
                         });
                     } else if trimmed.starts_with("SAT") {
                         satisfiable = true;
-                    } else {
-                        return Ok(SatOutput {
-                            assignment: None,
-                            satisfiable: None,
-                        });
                     }
                 }
                 Some('v') => {
