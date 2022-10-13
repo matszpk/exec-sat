@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 use std::ffi::OsStr;
-use std::io::{self, Read, BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, Read};
 use std::num::ParseIntError;
 use std::panic;
 use std::process::{Command, Stdio};
@@ -136,11 +136,12 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
 }
 
 /// Try to call (execute) SAT solver. The input argument should be formulae in CNF format.
-pub fn call_sat<S, I, R>(program: S, args: I, mut input: R) -> Result<SatOutput, Error>
+pub fn call_sat<S, S2, I, R>(program: S, args: I, mut input: R) -> Result<SatOutput, Error>
 where
     S: AsRef<OsStr>,
-    I: IntoIterator<Item = S>,
-    R: Read + Send + 'static,
+    S2: AsRef<OsStr>,
+    I: IntoIterator<Item = S2>,
+    R: Read,
 {
     let mut child = Command::new(program)
         .args(args)
@@ -148,44 +149,41 @@ where
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()?;
-    let mut stdin = child.stdin.take().ok_or(Error::NoInputAvailable)?;
-    let join = thread::spawn(move || {
-        io::copy(&mut input, &mut stdin)
-    });
-    let output = child.wait_with_output().expect("Failed to wait child");
-    
+    let join = {
+        let mut stdin = child.stdin.take().ok_or(Error::NoInputAvailable)?;
+        let join = thread::spawn(move || child.wait_with_output());
+
+        io::copy(&mut input, &mut stdin)?;
+        join
+    };
+
+    // handle join
+    let output = match join.join() {
+        Ok(t) => t,
+        Err(err) => panic::resume_unwind(err),
+    }?;
+
     let exp_satisiable = if let Some(exit_code) = output.status.code() {
         match exit_code {
             10 => Some(true),
             20 => Some(false),
-            _ => None
+            _ => None,
         }
     } else {
         None
     };
-    
-    // handle join
-    match join.join() {
-        Ok(t) => {
-            match t {
-                Err(err) => {
-                    return Err(Error::IOError(err));
-                }
-                _ => (),
-            }
-        }
-        Err(err) => panic::resume_unwind(err),
-    }
-    
+
     if !output.stdout.is_empty() {
         let sat_out = parse_sat_output(BufReader::new(output.stdout.as_slice()))?;
         if sat_out.satisfiable.is_none() {
             // if satisfiability is uknown from stdout output
+            println!("sss");
             Ok(SatOutput {
                 assignment: None,
                 satisfiable: exp_satisiable,
             })
         } else {
+            println!("sssxxx");
             Ok(sat_out)
         }
     } else {
