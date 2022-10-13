@@ -17,9 +17,12 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-use std::io::{self, BufRead};
+use std::ffi::OsStr;
+use std::io::{self, Read, BufRead, BufReader};
 use std::num::ParseIntError;
+use std::process::{Command, Stdio};
 use std::str::FromStr;
+use std::thread;
 
 /// Error type.
 #[derive(thiserror::Error, Debug)]
@@ -39,6 +42,9 @@ pub enum Error {
     /// I/O error.
     #[error("IO rttot: {0}")]
     IOError(#[from] io::Error),
+    /// No input available
+    #[error("No input available from solver")]
+    NoInputAvailable,
 }
 
 /// Sat solver output.
@@ -84,10 +90,12 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
                         let varlit = lit.checked_abs().unwrap() as usize;
                         if varlit != 0 {
                             let req_size = varlit.checked_add(1).unwrap();
+                            // resize to required size.
                             if assignments.len() <= req_size {
                                 assignments.resize(req_size, false);
                                 have_assignments.resize(req_size, false);
                             }
+                            // check if variables already assigned
                             if have_assignments[varlit] {
                                 return Err(Error::AssignedMoreThanOnce);
                             }
@@ -106,6 +114,7 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
     }
     if satisfiable {
         if have_assignments.iter().skip(1).all(|x| *x) {
+            // all variables assigned - ok
             Ok(SatOutput {
                 assignment: if assignments.is_empty() {
                     None
@@ -125,10 +134,46 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
     }
 }
 
+pub fn call_sat<S, I, R>(program: S, args: I, mut input: R) -> Result<SatOutput, Error>
+where
+    S: AsRef<OsStr>,
+    I: IntoIterator<Item = S>,
+    R: Read + Send + 'static,
+{
+    let mut child = Command::new(program)
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()?;
+    let mut stdin = child.stdin.take().ok_or(Error::NoInputAvailable)?;
+    let join = thread::spawn(move || {
+        io::copy(&mut input, &mut stdin)
+    });
+    let output = child.wait_with_output().expect("Failed to wait child");
+    
+    let exp_satisiable = if let Some(exit_code) = output.status.code() {
+        match exit_code {
+            10 => Some(true),
+            20 => Some(false),
+            _ => None
+        }
+    } else {
+        None
+    };
+    if !output.stdout.is_empty() {
+        parse_sat_output(BufReader::new(output.stdout.as_slice()))
+    } else {
+        Ok(SatOutput {
+            assignment: None,
+            satisfiable: exp_satisiable,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::BufReader;
 
     #[test]
     fn test_parse_sat_output() {
