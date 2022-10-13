@@ -20,6 +20,7 @@
 use std::ffi::OsStr;
 use std::io::{self, Read, BufRead, BufReader};
 use std::num::ParseIntError;
+use std::panic;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::thread;
@@ -134,6 +135,7 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
     }
 }
 
+/// Try to call (execute) SAT solver. The input argument should be formulae in CNF format.
 pub fn call_sat<S, I, R>(program: S, args: I, mut input: R) -> Result<SatOutput, Error>
 where
     S: AsRef<OsStr>,
@@ -161,8 +163,31 @@ where
     } else {
         None
     };
+    
+    // handle join
+    match join.join() {
+        Ok(t) => {
+            match t {
+                Err(err) => {
+                    return Err(Error::IOError(err));
+                }
+                _ => (),
+            }
+        }
+        Err(err) => panic::resume_unwind(err),
+    }
+    
     if !output.stdout.is_empty() {
-        parse_sat_output(BufReader::new(output.stdout.as_slice()))
+        let sat_out = parse_sat_output(BufReader::new(output.stdout.as_slice()))?;
+        if sat_out.satisfiable.is_none() {
+            // if satisfiability is uknown from stdout output
+            Ok(SatOutput {
+                assignment: None,
+                satisfiable: exp_satisiable,
+            })
+        } else {
+            Ok(sat_out)
+        }
     } else {
         Ok(SatOutput {
             assignment: None,
