@@ -1,7 +1,18 @@
 [package]
 name = "satcall"
-version = "0.1.0"
+authors = ["Mateusz Szpakowski"]
+license = "LGPL-2.1-or-later"
+version = "0.2.1"
 edition = "2021"
+description = "Call SAT solver and parse SAT solver output"
+repository = "https://github.com/matszpk/satcall"
+documentation = "https://docs.rs/satcall"
+keywords = ["cnf", "logic", "SAT"]
+categories = ["science", "logic", "mathematics"]
 
 [dependencies]
 thiserror = "1.0"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
