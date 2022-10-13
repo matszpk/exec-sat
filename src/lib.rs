@@ -28,9 +28,9 @@ pub enum Error {
     #[error("Too many results")]
     TooManyResults,
     /// If assigned more than once
-    #[error("Variable assigned more than once")]
+    #[error("Variable has been assigned more than once")]
     AssignedMoreThanOnce,
-    /// If assigned more than once
+    /// If not all variables has been assigned
     #[error("Not all variables has been assigned")]
     NotAllAreAssigned,
     /// Parse error for integers
@@ -164,7 +164,7 @@ v -2 1 3 4 -5 -4 0
 c This is end
 "#;
         assert_eq!(
-            Err("Variable assigned more than once".to_string()),
+            Err("Variable has been assigned more than once".to_string()),
             parse_sat_output(BufReader::new(example.as_bytes())).map_err(|e| e.to_string())
         );
 
