@@ -128,7 +128,7 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
 }
 
 /// Try to call (execute) SAT solver. The input argument should be formulae in CNF format.
-pub fn call_sat_simple<S, I, R>(program: S, input: R) -> Result<SatOutput, Error>
+pub fn call_sat_simple<S, R>(program: S, input: R) -> Result<SatOutput, Error>
 where
     S: AsRef<OsStr>,
     R: Read,
