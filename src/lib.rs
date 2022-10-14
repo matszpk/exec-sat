@@ -186,7 +186,7 @@ where
     if !output.stdout.is_empty() {
         let sat_out = parse_sat_output(BufReader::new(output.stdout.as_slice()))?;
         if let SatOutput::Unknown = sat_out {
-            // if satisfiability is uknown from stdout output
+            // if satisfiability is unknown from stdout output
             Ok(exp_satisfiable)
         } else {
             Ok(sat_out)
