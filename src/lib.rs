@@ -40,7 +40,7 @@ pub enum Error {
     /// Duplicated result.
     #[error("Too many results")]
     TooManyResults,
-    /// If assigned more than once.
+    /// If some variable has been assigned more than once.
     #[error("Variable has been assigned more than once")]
     AssignedMoreThanOnce,
     /// If not all variables has been assigned.
