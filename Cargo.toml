@@ -1,12 +1,12 @@
 [package]
-name = "satcall"
+name = "exec-sat"
 authors = ["Mateusz Szpakowski"]
 license = "LGPL-2.1-or-later"
 version = "0.2.1"
 edition = "2021"
-description = "Call SAT solver and parse SAT solver output"
-repository = "https://github.com/matszpk/satcall"
-documentation = "https://docs.rs/satcall"
+description = "Executes SAT solver and parses SAT solver output"
+repository = "https://github.com/matszpk/exec-sat"
+documentation = "https://docs.rs/exec-sat"
 keywords = ["cnf", "logic", "SAT"]
 categories = ["science", "logic", "mathematics"]
 

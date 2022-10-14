@@ -1,6 +1,6 @@
-// lib.rs - library to call and/or parse SAT solver output.
+// lib.rs - library to execute and/or parse SAT solver output.
 //
-// cnfgen - Generate the DIMACS CNF formulae from operations
+// exec-sat - Execute SAT Solver and/or parse SAT solver output.
 // Copyright (C) 2022  Mateusz Szpakowski
 //
 // This library is free software; you can redistribute it and/or
@@ -18,13 +18,13 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
-//! The library to call SAT solver.
+//! The library to execute SAT solver.
 //!
-//! This library provides routines to parse SAT solver output and to call SAT solver.
+//! This library provides routines to parse SAT solver output and to execute SAT solver.
 //! It three contains functions:
 //! * `parse_sat_output` - to parse output from SAT solver after solving instance,
-//! * `call_sat_simple` - to call SAT solver program without arguments.
-//! * `call_sat` - to call SAT solver program with arguments.
+//! * `exec_sat_simple` - to execute SAT solver program without arguments.
+//! * `exec_sat` - to execute SAT solver program with arguments.
 
 use std::ffi::OsStr;
 use std::io::{self, BufRead, BufReader, Read};
@@ -136,17 +136,17 @@ pub fn parse_sat_output(r: impl BufRead) -> Result<SatOutput, Error> {
     }
 }
 
-/// Try to call (execute) SAT solver. The input argument should be formulae in CNF format.
-pub fn call_sat_simple<S, R>(program: S, input: R) -> Result<SatOutput, Error>
+/// Try to execute SAT solver. The input argument should be formulae in CNF format.
+pub fn exec_sat_simple<S, R>(program: S, input: R) -> Result<SatOutput, Error>
 where
     S: AsRef<OsStr>,
     R: Read,
 {
-    call_sat::<_, &str, _, _>(program, [], input)
+    exec_sat::<_, &str, _, _>(program, [], input)
 }
 
-/// Try to call (execute) SAT solver. The input argument should be formulae in CNF format.
-pub fn call_sat<S, S2, I, R>(program: S, args: I, mut input: R) -> Result<SatOutput, Error>
+/// Try to execute SAT solver. The input argument should be formulae in CNF format.
+pub fn exec_sat<S, S2, I, R>(program: S, args: I, mut input: R) -> Result<SatOutput, Error>
 where
     S: AsRef<OsStr>,
     S2: AsRef<OsStr>,

@@ -1,7 +1,7 @@
-## SatCall
+## Exec-SAT
 
-This library provides routines to parse SAT solver output and to call SAT solver.
+This library provides routines to parse SAT solver output and to execute SAT solver.
 It three contains functions:
 * `parse_sat_output` - to parse output from SAT solver after solving instance,
-* `call_sat_simple` - to call SAT solver program without arguments.
-* `call_sat` - to call SAT solver program with arguments.
+* `exec_sat_simple` - to execute SAT solver program without arguments.
+* `exec_sat` - to execute SAT solver program with arguments.
