@@ -50,7 +50,7 @@ pub enum Error {
     #[error("Parse error: {0}")]
     ParseError(#[from] ParseIntError),
     /// I/O error.
-    #[error("IO rttot: {0}")]
+    #[error("IO error: {0}")]
     IOError(#[from] io::Error),
     /// No input available.
     #[error("No input available from solver")]
