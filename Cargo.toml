@@ -8,7 +8,7 @@ description = "Executes SAT solver and parses SAT solver output"
 repository = "https://github.com/matszpk/exec-sat"
 documentation = "https://docs.rs/exec-sat"
 keywords = ["cnf", "logic", "SAT"]
-categories = ["science", "logic", "mathematics"]
+categories = ["science", "mathematics"]
 
 [dependencies]
 thiserror = "1.0"
