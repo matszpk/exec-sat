@@ -2,7 +2,7 @@
 name = "exec-sat"
 authors = ["Mateusz Szpakowski"]
 license = "LGPL-2.1-or-later"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Executes SAT solver and parses SAT solver output"
 repository = "https://github.com/matszpk/exec-sat"
